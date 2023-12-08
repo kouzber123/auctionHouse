@@ -5,6 +5,7 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Contracts;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,12 +48,13 @@ namespace AuctionService.Controllers
             return Ok(_mapper.Map<AuctionDto>(auction));
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<AuctionDto>> CreateAuction(CreateAuctionDto createAuctionDto)
         {
             var auction = _mapper.Map<Auction>(createAuctionDto);
             //add current user as seller
-
+            auction.Seller = User.Identity.Name;
             //Create new auction and publish it on masstransit eithei all work or none will work
             //transaction 1 >
             _context.Auctions.Add(auction);
@@ -69,13 +71,15 @@ namespace AuctionService.Controllers
             return CreatedAtAction(nameof(GetAuctionById), new { auction.Id }, newAuction);
 
         }
-
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateAuction(Guid id, UpdateAuctionDto updateAuctionDto)
         {
             var auction = await _context.Auctions.Include(x => x.Item).FirstOrDefaultAsync(x => x.Id == id);
 
             if (auction is null) return NotFound("Updated target not found");
+
+            if(auction.Seller != User.Identity.Name) return Forbid();
 
             //to do check seller == username
             //The null-coalescing operator ?? returns the value of its left-hand operand if it isn't null;
@@ -93,7 +97,7 @@ namespace AuctionService.Controllers
             return BadRequest("Couldnt update the auction resources");
 
         }
-
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteAuction(Guid id)
         {
@@ -102,7 +106,7 @@ namespace AuctionService.Controllers
 
             if (auction is null) return NotFound();
             //to do check sellert == username
-
+            if(auction.Seller != User.Identity.Name) return Forbid();
 
 
             var auctionDto = _mapper.Map<AuctionDto>(auction);

@@ -6,6 +6,9 @@ using SearchService.Models;
 
 namespace SearchService.Consumers
 {
+    /// <summary>
+    ///   uses MONGO DB
+    /// </summary>
     public class AuctionUpdatedConsumer : IConsumer<AuctionUpdated>
     {
         private readonly IMapper _mapper;
